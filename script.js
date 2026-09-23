@@ -20,7 +20,11 @@ const $=id=>document.getElementById(id),
  quiz=$("quiz"),
  finish=$("finish"),
  final=$("final"),
- again=$("again");
+ again=$("again"),
+ questionNav=$("questionNav"),
+ navSummary=$("navSummary"),
+ toggleNav=$("toggleNav"),
+ questionNavWrap=$("questionNavWrap");
 
 
 /* =========================================================
@@ -41,6 +45,154 @@ function quizContext() {
     question_order: order.value,
     total_questions: set.length
   };
+}
+
+
+
+/* =========================================================
+   MOODLE-STYLE QUESTION NAVIGATION
+   ========================================================= */
+
+function questionNavState(index){
+
+  const x=set[index];
+  const st=state[index];
+
+  if(index===i){
+    return "current";
+  }
+
+  if(!st){
+    return "unanswered";
+  }
+
+  if(x.answer===null){
+    return "flagged";
+  }
+
+  return st.ok ? "correct" : "incorrect";
+}
+
+
+function renderQuestionNavigator(){
+
+  if(!questionNav) return;
+
+  questionNav.innerHTML="";
+
+  const frag=document.createDocumentFragment();
+
+  set.forEach((x,index)=>{
+
+    const b=document.createElement("button");
+
+    const navState=questionNavState(index);
+
+    b.type="button";
+    b.className=`nav-question nav-${navState}`;
+    b.textContent=String(index+1);
+
+    b.setAttribute(
+      "aria-label",
+      `Go to question ${index+1}: ${x.sub || subject.value}`
+    );
+
+    if(index===i){
+      b.setAttribute("aria-current","true");
+    }
+
+    // Useful on desktop when hovering over a question number.
+    b.title=
+      `Question ${index+1}`+
+      `${x.sub ? " • "+x.sub : ""}`+
+      `${x.id ? " • Original "+x.id : ""}`;
+
+    b.addEventListener("click",()=>{
+
+      if(index===i) return;
+
+      const fromQuestion=i+1;
+
+      i=index;
+
+      track("question_navigated",{
+        ...quizContext(),
+        from_question:fromQuestion,
+        to_question:index+1,
+        target_subject:x.sub || subject.value
+      });
+
+      render();
+
+      // Keep the selected question visible inside a long navigator.
+      requestAnimationFrame(()=>{
+        const current=
+          questionNav.querySelector('[aria-current="true"]');
+
+        if(current){
+          current.scrollIntoView({
+            block:"nearest",
+            inline:"nearest"
+          });
+        }
+      });
+    });
+
+    frag.appendChild(b);
+  });
+
+  questionNav.appendChild(frag);
+
+  const answered=state.filter(Boolean).length;
+
+  if(navSummary){
+    navSummary.textContent=
+      `${answered} of ${set.length} visited/answered`;
+  }
+}
+
+
+function updateQuestionNavigator(){
+
+  if(!questionNav) return;
+
+  const buttons=questionNav.querySelectorAll(".nav-question");
+
+  // If the set changed, rebuild the whole navigation grid.
+  if(buttons.length!==set.length){
+    renderQuestionNavigator();
+    return;
+  }
+
+  buttons.forEach((b,index)=>{
+
+    const navState=questionNavState(index);
+
+    b.className=`nav-question nav-${navState}`;
+
+    if(index===i){
+      b.setAttribute("aria-current","true");
+    }else{
+      b.removeAttribute("aria-current");
+    }
+  });
+
+  const answered=state.filter(Boolean).length;
+
+  if(navSummary){
+    navSummary.textContent=
+      `${answered} of ${set.length} visited/answered`;
+  }
+}
+
+
+function setNavigatorOpen(open){
+
+  if(!questionNavWrap || !toggleNav) return;
+
+  questionNavWrap.hidden=!open;
+  toggleNav.textContent=open ? "Hide" : "Show";
+  toggleNav.setAttribute("aria-expanded",String(open));
 }
 
 
@@ -91,6 +243,7 @@ function build(){
   quiz.hidden=false;
   finish.hidden=true;
 
+  renderQuestionNavigator();
   render();
 }
 
@@ -149,12 +302,14 @@ function render(){
 
   if(st) show(x,st);
 
-  next.disabled=!st;
+  next.disabled=false;
 
   next.textContent=
     i===set.length-1
       ?"Finish"
       :"Next";
+
+  updateQuestionNavigator();
 }
 
 
@@ -221,6 +376,37 @@ function choose(choice){
 
   });
 
+
+  render();
+}
+
+
+
+function resetCurrentQuestion(){
+
+  const x=set[i];
+  const st=state[i];
+
+  if(!st) return;
+
+  // Only a normal incorrectly answered question can be retried.
+  // Correct answers and flagged/unscored questions remain unchanged.
+  if(x.answer===null || st.ok) return;
+
+  track("question_reset",{
+    ...quizContext(),
+    question_id:String(x.id),
+    question_number:i+1,
+    question_subject:x.sub,
+    previous_result:"incorrect"
+  });
+
+  // The first wrong attempt increased the scored denominator.
+  // Undo only that question before allowing another attempt.
+  scored=Math.max(0,scored-1);
+
+  // Clear only the current question.
+  state[i]=null;
 
   render();
 }
@@ -307,6 +493,26 @@ function show(x,st){
      </span>
 
      </div>`;
+
+  // If the learner chose a wrong answer, allow only this question
+  // to be reset and attempted again.
+  if(!st.ok){
+
+    feedback.innerHTML += `
+      <div class="retry-wrap">
+        <button
+          type="button"
+          id="retry-question"
+          class="retry-question">
+          ↻ Try this question again
+        </button>
+      </div>
+    `;
+
+    document
+      .getElementById("retry-question")
+      .addEventListener("click",resetCurrentQuestion);
+  }
 }
 
 
@@ -369,18 +575,49 @@ prev.addEventListener("click",()=>{
 
 restart.addEventListener("click",()=>{
 
-  track("quiz_restarted",{
+  const x=set[i];
+  const st=state[i];
 
+  // Nothing to clear if the current question has not been answered.
+  if(!st){
+    track("question_restart_clicked",{
+      ...quizContext(),
+      question_id:String(x.id),
+      question_number:i+1,
+      question_subject:x.sub,
+      had_answer:false
+    });
+
+    render();
+    return;
+  }
+
+  // If this was a scored question, undo only this question's
+  // contribution to the current score before clearing it.
+  if(x.answer!==null){
+
+    scored=Math.max(0,scored-1);
+
+    if(st.ok){
+      score=Math.max(0,score-1);
+    }
+  }
+
+  track("question_restarted",{
     ...quizContext(),
-
-    restart_source:"quiz",
-
-    questions_answered:
-      state.filter(Boolean).length
-
+    question_id:String(x.id),
+    question_number:i+1,
+    question_subject:x.sub,
+    previous_result:
+      x.answer===null
+        ?"unscored"
+        :(st.ok ? "correct" : "incorrect")
   });
 
-  build();
+  // Clear only the current question.
+  state[i]=null;
+
+  render();
 });
 
 
@@ -422,6 +659,14 @@ order.addEventListener("change",()=>{
 
   build();
 });
+
+
+
+if(toggleNav){
+  toggleNav.addEventListener("click",()=>{
+    setNavigatorOpen(questionNavWrap.hidden);
+  });
+}
 
 
 build();
