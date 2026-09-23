@@ -34,6 +34,19 @@
 <div class="stats"><span id="prog">Question 1</span><span id="score">Score: 0 / 0</span></div>
 <div class="progress"><div id="bar" class="bar"></div></div>
 <div id="quiz">
+<div class="nav-toggle-row">
+<button id="toggleNav" class="nav-toggle" type="button" aria-controls="questionNavWrap" aria-expanded="true">Hide</button>
+<span id="navSummary">0 of 0 visited/answered</span>
+</div>
+<div id="questionNavWrap">
+<div id="questionNav" class="question-nav" role="listbox"></div>
+<div class="nav-legend">
+<span><i class="legend-box nav-correct"></i>Correct</span>
+<span><i class="legend-box nav-incorrect"></i>Wrong</span>
+<span><i class="legend-box nav-flagged"></i>Flagged</span>
+<span><i class="legend-box nav-current"></i>Current</span>
+</div>
+</div>
 <div id="meta" class="meta"></div>
 <p id="question" class="question"></p>
 <div id="answers" class="answers"></div>

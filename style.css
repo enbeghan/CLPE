@@ -79,6 +79,18 @@ select,button{font:inherit} select{width:100%;min-height:46px;border:1px solid v
   cursor:pointer;
 }
 
+.nav-toggle-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.nav-toggle-row span{
+  color:var(--muted);
+  font-size:.8rem;
+}
+
 .question-nav{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(42px,1fr));
