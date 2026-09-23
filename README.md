@@ -1,6 +1,16 @@
 # CLPE Part One Validated Quiz
 
-GitHub Pages-ready static site.
+GitHub Pages-ready static site containing 731 objective questions across six subjects.
+
+## Subjects
+- Old Testament: 240 questions
+- New Testament: 175 questions
+- Doctrine: 66 questions
+- Liturgics: 39 questions
+- Methodist Studies: 96 questions
+- Church & Society: 115 questions
+
+The answer bank is checked against the attached CLPE Part One syllabus. Questions that cannot be uniquely validated are flagged and excluded from scoring.
 
 ## Files
 - `index.html` - main page
