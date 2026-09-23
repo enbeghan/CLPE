@@ -496,23 +496,23 @@ function show(x,st){
 
   // If the learner chose a wrong answer, allow only this question
   // to be reset and attempted again.
-  if(!st.ok){
+  // if(!st.ok){
 
-    feedback.innerHTML += `
-      <div class="retry-wrap">
-        <button
-          type="button"
-          id="retry-question"
-          class="retry-question">
-          ↻ Try this question again
-        </button>
-      </div>
-    `;
+  //   feedback.innerHTML += `
+  //     <div class="retry-wrap">
+  //       <button
+  //         type="button"
+  //         id="retry-question"
+  //         class="retry-question">
+  //         ↻ Try this question again
+  //       </button>
+  //     </div>
+  //   `;
 
-    document
-      .getElementById("retry-question")
-      .addEventListener("click",resetCurrentQuestion);
-  }
+  //   document
+  //     .getElementById("retry-question")
+  //     .addEventListener("click",resetCurrentQuestion);
+  // }
 }
 
 
