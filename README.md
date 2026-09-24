@@ -28,3 +28,21 @@ The answer bank is checked against the attached CLPE Part One syllabus. Question
 7. GitHub will show the public Pages URL after deployment.
 
 The site is fully static and needs no server or database.
+
+
+## Answer explanations and question reset
+
+This version keeps the existing quiz structure and uses one **Reset question** control.
+
+- There is no separate **Try again** or **Try this question again** button.
+- **Reset question** clears only the question currently being viewed and preserves all other answers.
+- If the current question had already affected the score, its contribution is undone before it is reset.
+- Answer feedback explains why the verified answer is correct, defines important terms when useful, and gives a key study point where the course material provides additional context.
+- The course-page reference is kept separate from the explanation.
+
+
+## Local loading fix
+
+The quiz JavaScript is embedded directly in `index.html` in this build. This prevents the blank-question problem that can occur when a browser opens the page as a local `file://` page but does not load the separate `script.js` file correctly.
+
+`script.js` is still included in the package as a source copy, but the page does not depend on it to run.
