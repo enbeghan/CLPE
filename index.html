@@ -61,19 +61,6 @@
 
 <noscript><p class="bad">JavaScript is required to run this quiz.</p></noscript>
 <div id="quiz">
-<div class="nav-toggle-row">
-<button id="toggleNav" class="nav-toggle" type="button" aria-controls="questionNavWrap" aria-expanded="true">Hide</button>
-<span id="navSummary">0 of 0 visited/answered</span>
-</div>
-<div id="questionNavWrap">
-<div id="questionNav" class="question-nav" role="listbox"></div>
-<div class="nav-legend">
-<span><i class="legend-box nav-correct"></i>Correct</span>
-<span><i class="legend-box nav-incorrect"></i>Wrong</span>
-<span><i class="legend-box nav-flagged"></i>Flagged</span>
-<span><i class="legend-box nav-current"></i>Current</span>
-</div>
-</div>
 <div id="meta" class="meta"></div>
 <p id="question" class="question">Loading quiz questions…</p>
 <div id="answers" class="answers"></div>
@@ -466,6 +453,154 @@ function choose(choice){
 }
 
 
+
+
+
+/* =========================================================
+   ANSWER EXPLANATION HELPERS
+   ========================================================= */
+
+function tidyStudyText(raw){
+  let t=String(raw || "")
+    .replace(/\u00ad/g,"")
+    .replace(/\s+/g," ")
+    .trim();
+
+  t=t
+    .replace(/the CLPE syllabus explains the relevant point this way:\s*/gi,"")
+    .replace(/according to the CLPE syllabus\.?\s*/gi,"")
+    .replace(/the CLPE syllabus says:?\s*/gi,"")
+    .replace(/the syllabus explains the relevant point this way:\s*/gi,"")
+    .replace(/the syllabus says:?\s*/gi,"")
+    .trim();
+
+  if(t.length>700){
+    let cut=t.lastIndexOf(". ",700);
+    if(cut<300) cut=700;
+    t=t.slice(0,cut+1).trim();
+  }
+
+  return t;
+}
+
+function answerMeaning(x,answer){
+  const text=`${x.q || ""} ${answer || ""}`.toLowerCase();
+
+  const glossary=[
+    [/aramaic/,"Aramaic is a Semitic language closely related to Hebrew. Most of the Old Testament was written in Hebrew, some sections were written in Aramaic, and the New Testament was written in Greek."],
+    [/\bcanon\b|canonical/,"Canon refers to the collection of books recognized by the faith community as authoritative Scripture. A canonical book is therefore a book accepted as belonging to that recognized collection."],
+    [/ketu(?:b|v)im|ketubim|the writings/,"Ketuvim means ‘Writings.’ It is the third division of the Hebrew Bible, after the Torah (Law) and the Nevi’im (Prophets)."],
+    [/\btorah\b/,"Torah means ‘instruction’ or ‘law.’ It commonly refers to the first five books of the Bible: Genesis, Exodus, Leviticus, Numbers and Deuteronomy."],
+    [/septuagint/,"The Septuagint is the ancient Greek translation of the Hebrew Scriptures. It was widely used among Greek-speaking Jews and early Christians."],
+    [/\bvulgate\b|jerome/,"The Vulgate is the Latin Bible associated especially with Jerome. It became the standard Latin Bible of Western Christianity for many centuries."],
+    [/pentateuch/,"Pentateuch means the first five books of the Bible: Genesis, Exodus, Leviticus, Numbers and Deuteronomy."],
+    [/patriarch/,"The biblical patriarchs are Abraham, Isaac and Jacob, the ancestral fathers whose family stories form a major part of Genesis."],
+    [/passover/,"Passover remembers Israel’s deliverance from Egypt. In Exodus 12, the Israelite homes marked with blood were spared when judgment came upon Egypt."],
+    [/syncret/,"Syncretism means mixing elements of different religions. In Israel’s history it often refers to combining worship of Yahweh with Canaanite religious practices such as Baal worship."],
+    [/corv[eé]e|forced labo[u]?r/,"Corvée is compulsory labour required by a ruler or state. Under the monarchy, people could be required to work on royal building projects."],
+    [/\bprophet\b|\bseer\b/,"A prophet speaks a message on behalf of God. The word ‘seer’ emphasizes receiving divine insight or vision."],
+    [/major prophets?|minor prophets?/,"‘Major’ and ‘Minor’ refer mainly to the length of the prophetic books, not to the importance of the prophets."],
+    [/former prophets?/,"In the Hebrew Bible, the Former Prophets are Joshua, Judges, Samuel and Kings. They interpret Israel’s history from a prophetic perspective."],
+    [/\bbaal\b/,"Baal was a major Canaanite deity associated with storm, rain and fertility. Israel’s attraction to Baal worship became an important concern of the biblical prophets."],
+    [/theodicy/,"Theodicy is the question of how suffering and evil can exist if God is just and powerful. The Book of Job explores this problem rather than reducing suffering to a simple formula."],
+    [/\blament\b/,"A lament is a prayer spoken from distress. It may include complaint, a plea for help, trust in God and thanksgiving."],
+    [/\bpsalm\b|psalter/,"The Psalter is the Book of Psalms. It contains several kinds of prayer and worship, including praise, lament, thanksgiving, royal psalms and wisdom material."],
+    [/synoptic/,"Synoptic means ‘seen together.’ Matthew, Mark and Luke are called the Synoptic Gospels because they share much material and a broadly similar arrangement."],
+    [/oral tradition/,"Oral tradition means teachings and memories passed from person to person through speech before, or alongside, being written down."],
+    [/\bepistle/,"An epistle is a letter. New Testament Epistles were written to churches or individuals to teach, correct, encourage and apply Christian faith to real situations."],
+    [/justification/,"Justification means being put right with God or declared righteous. In Paul’s teaching it is closely connected with faith rather than earning acceptance through works of the law."],
+    [/soteriology/,"Soteriology is the area of Christian doctrine that studies salvation: why salvation is needed, what God does to save, and what salvation means for human beings."],
+    [/eschatolog/,"Eschatology is the study of the ‘last things,’ including Christ’s return, resurrection, judgment and the final destiny of creation."],
+    [/anthropomorph/,"Anthropomorphic language describes God using human features such as hands, eyes or mouth. It communicates something about God’s action or character without requiring the idea that God literally has a human body."],
+    [/pantheism/,"Pantheism identifies God with the universe or nature itself. This differs from belief in a Creator who is distinct from creation."],
+    [/\bdeism\b/,"Deism teaches that God created the universe but does not normally intervene in it in the way traditional Christian theism teaches."],
+    [/\banimism\b/,"Animism is the belief that spiritual beings or spiritual power may inhabit or be associated with features of nature and human life."],
+    [/original sin/,"Original sin refers to humanity’s fallen condition connected with the first human disobedience, rather than merely one particular sinful act."],
+    [/\beucharist\b/,"Eucharist means ‘thanksgiving’ and is another name for the Lord’s Supper or Holy Communion."],
+    [/\bsacrament/,"A sacrament is a sacred Christian rite through which the church expresses and receives God’s grace. In Methodist practice, Baptism and Holy Communion are the principal sacraments."],
+    [/\bliturgy\b/,"Liturgy is the ordered form of public worship, including prayers, readings, responses, hymns and other acts of the worshipping community."],
+    [/\brubric/,"A rubric is an instruction in a service or liturgical book telling the minister or congregation what is to be done."],
+    [/catechesis/,"Catechesis is structured Christian teaching and formation. It helps learners understand Christian beliefs, Scripture and practices."],
+    [/holy club/,"The Holy Club was the Oxford devotional group associated with John and Charles Wesley and their companions. Its disciplined religious practices contributed to the beginnings of Methodism."],
+    [/aldersgate/,"Aldersgate refers to John Wesley’s 1738 experience of assurance, when he described his heart as ‘strangely warmed’ and gained renewed confidence in salvation through Christ."],
+    [/moravian/,"The Moravians were a Protestant Christian community whose emphasis on personal faith and assurance strongly influenced John and Charles Wesley."],
+    [/wesleyan quadrilateral|quadrilateral/,"The Wesleyan Quadrilateral describes four sources used in theological reflection: Scripture, tradition, reason and experience. Scripture remains primary in Wesleyan thought."],
+    [/christian perfection|perfect love|entire sanctification/,"Christian perfection in Wesleyan teaching does not mean never making a mistake. It refers especially to mature love of God and neighbour and a heart increasingly freed from sinful intention."],
+    [/maslow|self[- ]actual|physiological needs|safety needs|esteem needs/,"Maslow’s hierarchy arranges human needs from basic physiological needs through safety, belonging and esteem toward self-actualization, which concerns developing one’s potential."],
+    [/reciprocity/,"Reciprocity is exchange based on giving and receiving between people or groups. Different forms vary according to how immediate or equal the return is expected to be."],
+    [/\bngo\b|non-governmental/,"NGO means Non-Governmental Organization: an organization that operates independently of government, often in development, humanitarian work or advocacy."],
+    [/\bculture\b/,"Culture is the shared way of life of a people, including learned beliefs, values, customs, behaviour and practices passed from one generation to another."],
+    [/subculture/,"A subculture is a group within a wider culture that shares the larger society but has some distinctive values, practices, identity or lifestyle."],
+    [/\bmana\b/,"Mana is a term used in traditional religious studies for an impersonal spiritual power or force believed to be present in persons or things."],
+    [/global warming/,"Global warming is the long-term rise in Earth’s average temperature. It is an environmental condition, not itself a deliberate human activity."],
+    [/free[- ]market/,"A free-market system relies mainly on voluntary exchange, prices, supply and demand rather than comprehensive state direction of economic activity."],
+    [/consumerism/,"Consumerism emphasizes acquiring and consuming goods and services. It is a social and economic orientation rather than one of the classic economic systems such as capitalism or socialism."],
+    [/\bkingdom of god\b|\bkingdom of heaven\b/,"The Kingdom of God refers to God’s reign or rule. In the Gospels it is expressed through Jesus’ teaching, actions and announcement of God’s saving rule."],
+    [/\bparable\b/,"A parable is a short illustrative story or comparison used to communicate a deeper moral or spiritual truth."],
+    [/\bdisciple\b/,"A disciple is a learner or follower. In the New Testament the word especially describes people who follow Jesus and learn his teaching and way of life."],
+    [/\bapostle\b/,"An apostle is one who is sent with authority. In the New Testament the term is especially associated with authorized witnesses and messengers of Christ."],
+    [/\bpharisee/,"The Pharisees were a Jewish religious movement known for careful observance and interpretation of the Law and traditions."],
+    [/\bsadducee/,"The Sadducees were a Jewish group associated especially with the priestly and temple establishment. They differed from the Pharisees on several beliefs, including resurrection."],
+    [/\bbaptism\b/,"Baptism is the Christian rite of initiation using water. It signifies belonging to Christ and the Christian community and is associated with cleansing, new life and discipleship."]
+  ];
+
+  for(const [pattern,note] of glossary){
+    if(pattern.test(text)) return note;
+  }
+
+  return "";
+}
+
+function explanationReason(x,answer){
+  let base=tidyStudyText(x.explanation || x.evidence || "");
+  const q=String(x.q || "").trim();
+  const lower=q.toLowerCase();
+
+  if(/\bexcept\b|odd one out|out of place|not one of/i.test(lower)){
+    return `This is an exception question. “${answer}” is the option that does not fit the group or description being tested. ${base}`.trim();
+  }
+
+  if(/^who\b|who was|who is|by whom/i.test(q)){
+    return `${answer} is the person connected with the event, teaching or role named in the question. ${base}`.trim();
+  }
+
+  if(/^where\b|in which (?:city|place|mountain|battle|book)/i.test(q)){
+    return `${answer} is the place or source connected with what the question is asking. ${base}`.trim();
+  }
+
+  if(/^when\b|what year|in what year|how many|for how long/i.test(q)){
+    return `${answer} gives the date, number or period required by the question. ${base}`.trim();
+  }
+
+  if(/what does .* mean|what is meant|the term .* means|refers to|definition/i.test(lower)){
+    return `${answer} gives the meaning or definition being tested. ${base}`.trim();
+  }
+
+  if(base) return base;
+
+  return `${answer} is the best answer because it matches the fact, event, definition or teaching being tested in this question.`;
+}
+
+function keyStudyPoint(x){
+  const evidence=tidyStudyText(x.evidence || "");
+  const explanation=tidyStudyText(x.explanation || "");
+
+  if(evidence && explanation && evidence.toLowerCase()===explanation.toLowerCase()){
+    return "";
+  }
+
+  return evidence;
+}
+
+function flaggedExplanation(x){
+  const text=tidyStudyText(x.explanation || "");
+
+  if(/not give enough clear evidence|not scored|ambiguous|multiple|cannot be uniquely/i.test(text)){
+    return "This item is left unscored because the wording or answer choices do not support one clear answer strongly enough. It remains in the quiz for revision, but it does not affect the score.";
+  }
+
+  return text || "This item is left unscored because one answer cannot be established clearly enough from the wording and available course material.";
+}
 
 function show(x,st){
 
